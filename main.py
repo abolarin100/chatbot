@@ -31,10 +31,6 @@ SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
 MAX_SUMMARY_MESSAGES = 200
 MAX_SLACK_CHARS = 3500
 
-# Basic per-IP rate limit — the free Gemini tier itself caps at roughly
-# 15 requests/minute, so this just stops one visitor from burning your
-# whole quota. Not a substitute for real infra, but enough for a personal
-# portfolio's traffic level.
 RATE_LIMIT_MAX = 12
 RATE_LIMIT_WINDOW_SECONDS = 60
 _request_log: dict[str, deque] = defaultdict(deque)
