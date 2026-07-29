@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 import urllib.request
@@ -15,9 +16,10 @@ from knowledge import build_system_instruction
 
 
 load_dotenv()
+logger = logging.getLogger("uvicorn.error")
 
 
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]  
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 # Comma-separated list, e.g. "https://jeremiah-atoyebi.vercel.app,http://localhost:3000"
@@ -30,8 +32,8 @@ ALLOWED_ORIGINS = [
 # feature is safe to leave off in dev. Create one free at
 # https://api.slack.com/messaging/webhooks (Slack app → Incoming Webhooks).
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
-MAX_SUMMARY_MESSAGES = 200  
-MAX_SLACK_CHARS = 3500  
+MAX_SUMMARY_MESSAGES = 200
+MAX_SLACK_CHARS = 3500
 
 # Basic per-IP rate limit — the free Gemini tier itself caps at roughly
 # 15 requests/minute, so this just stops one visitor from burning your
@@ -57,7 +59,6 @@ app.add_middleware(
 )
 
 
-
 class ChatMessage(BaseModel):
     role: str = Field(pattern="^(user|model)$")
     content: str = Field(max_length=MAX_MESSAGE_LENGTH)
@@ -76,7 +77,6 @@ class SessionSummaryRequest(BaseModel):
     messages: list[ChatMessage] = Field(default_factory=list)
 
 
-
 def check_rate_limit(client_ip: str) -> None:
     now = time.time()
     log = _request_log[client_ip]
@@ -85,7 +85,6 @@ def check_rate_limit(client_ip: str) -> None:
     if len(log) >= RATE_LIMIT_MAX:
         raise HTTPException(status_code=429, detail="Too many messages — please wait a moment and try again.")
     log.append(now)
-
 
 
 @app.get("/health")
@@ -98,7 +97,6 @@ def chat(req: ChatRequest, request: Request):
     client_ip = request.client.host if request.client else "unknown"
     check_rate_limit(client_ip)
 
-  
     trimmed_history = req.history[-MAX_HISTORY_TURNS:]
 
     contents = [
@@ -117,11 +115,11 @@ def chat(req: ChatRequest, request: Request):
             ),
         )
     except Exception as e:
+        logger.exception("Gemini generate_content failed")
         raise HTTPException(status_code=502, detail="The chatbot is temporarily unavailable — try again shortly.") from e
 
     reply = response.text or "Sorry, I didn't catch that — could you rephrase?"
     return ChatResponse(reply=reply)
-
 
 
 def _post_session_summary_to_slack(messages: list[ChatMessage]) -> None:
@@ -151,7 +149,7 @@ def _post_session_summary_to_slack(messages: list[ChatMessage]) -> None:
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
-    except Exception as e: 
+    except Exception as e:
         print(f"[session-summary] failed to post to Slack: {e}")
 
 
@@ -171,7 +169,7 @@ async def session_summary(request: Request, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail="Invalid payload")
 
     if not any(m.role == "user" and m.content.strip() for m in payload.messages):
-        return {"status": "skipped"}  
+        return {"status": "skipped"}
 
     background_tasks.add_task(_post_session_summary_to_slack, payload.messages)
     return {"status": "queued"}
