@@ -15,7 +15,6 @@ from knowledge import build_system_instruction
 load_dotenv()
 logger = logging.getLogger("uvicorn.error")
 
-
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
