@@ -103,7 +103,7 @@ def chat(req: ChatRequest, request: Request):
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
                 temperature=0.6,
-                max_output_tokens=400,
+                max_output_tokens=800,
             ),
         )
     except Exception as e:
