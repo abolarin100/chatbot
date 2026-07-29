@@ -4,16 +4,13 @@ import os
 import time
 import urllib.request
 from collections import defaultdict, deque
-
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
-
 from knowledge import build_system_instruction
-
 
 load_dotenv()
 logger = logging.getLogger("uvicorn.error")
